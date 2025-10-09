@@ -1,5 +1,13 @@
 const express = require('express');
 const app = express();
+const db = require('./db'); // MySQL connection
+
+// Middleware to parse JSON bodies
+app.use(express.json());
+
+// Import and use authentication routes
+const authRoutes = require('./routes/auth');
+app.use('/auth', authRoutes);
 
 app.get('/', (req, res) => {
   res.send('Backend is running!');
