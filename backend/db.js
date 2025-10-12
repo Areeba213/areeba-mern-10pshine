@@ -1,10 +1,10 @@
-const mysql = require('mysql2');
+const mysql = require('mysql2'); // ← /promise hata diya
 
 const pool = mysql.createPool({
-  host: 'localhost',   
-  user: 'areebalaghari',       
-  password: 'VECTorIJk',        
-  database: 'notesapp' 
+  host: 'localhost',
+  user: 'areebalaghari',
+  password: 'VECTorIJk',
+  database: 'notesapp'
 });
 
 // Test the connection
