@@ -1,68 +1,134 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import API from '../services/api';
+import { Link, useNavigate } from 'react-router-dom';
 
-const Signup = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: ''
-  });
+const Signup = ({ onLogin }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      await API.post('/auth/signup', formData);
-      alert('Signup successful! Please login.');
-      navigate('/login');
+      // Signup request
+      const signupResponse = await fetch('http://localhost:3000/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const signupData = await signupResponse.json();
+
+      if (signupResponse.ok) {
+        // Auto login after signup
+        const loginResponse = await fetch('http://localhost:3000/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const loginData = await loginResponse.json();
+
+        if (loginResponse.ok) {
+          // Use backend user data with proper registration date
+          const userData = {
+            id: loginData.user.id,
+            name: loginData.user.name,
+            email: loginData.user.email,
+            memberSince: loginData.user.memberSince // Backend se proper date
+          };
+          
+          onLogin(userData, loginData.token);
+          navigate('/dashboard');
+        } else {
+          alert('Signup successful but login failed: ' + loginData.error);
+        }
+      } else {
+        alert(signupData.error || 'Signup failed');
+      }
     } catch (error) {
-      alert('Signup failed!');
+      alert('Network error: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="login-container">
-      <div className="login-form">
-        <h2>Create Account</h2>
-        <p>Join us today</p>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <input 
-              type="text" 
-              placeholder="Full name"
-              className="form-input"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <input 
-              type="email" 
-              placeholder="Email address"
-              className="form-input"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <input 
-              type="password" 
-              placeholder="Password"
-              className="form-input"
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-              required
-            />
-          </div>
-          <button type="submit" className="submit-btn">Create Account</button>
-        </form>
-        <div className="signup-link">
-          <p>Already have an account? <a href="/login">Sign In</a></p>
+      <form className="login-form" onSubmit={handleSubmit}>
+        <h2>ThinkSync</h2>
+        <p>Create your account to get started.</p>
+        
+        <div className="form-group">
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Full Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            disabled={loading}
+          />
         </div>
-      </div>
+        
+        <div className="form-group">
+          <input
+            type="email"
+            className="form-input"
+            placeholder="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={loading}
+          />
+        </div>
+        
+        <div className="form-group">
+          <input
+            type="password"
+            className="form-input"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={loading}
+          />
+        </div>
+
+        <div className="form-group">
+          <input
+            type="password"
+            className="form-input"
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            disabled={loading}
+          />
+        </div>
+        
+        <button type="submit" className="submit-btn" disabled={loading}>
+          {loading ? 'Creating Account...' : 'Create Account'}
+        </button>
+        
+        <div className="signup-link">
+          Already have an account? <Link to="/login">Sign in</Link>
+        </div>
+      </form>
     </div>
   );
 };

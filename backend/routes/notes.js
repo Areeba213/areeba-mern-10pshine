@@ -24,16 +24,22 @@ router.post('/', authMiddleware, (req, res) => {
   );
 });
 
-// Update note - ADD THIS
 router.put('/:id', authMiddleware, (req, res) => {
   const { title, content } = req.body;
+  const last_modified = new Date(); // Current timestamp
+  
   db.query(
-    'UPDATE notes SET title = ?, content = ? WHERE id = ? AND user_id = ?',
-    [title, content, req.params.id, req.user.id],
+    'UPDATE notes SET title = ?, content = ?, last_modified = ? WHERE id = ? AND user_id = ?',
+    [title, content, last_modified, req.params.id, req.user.id],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       if (result.affectedRows === 0) return res.status(404).json({ error: 'Note not found' });
-      res.json({ id: req.params.id, title, content });
+      res.json({ 
+        id: req.params.id, 
+        title, 
+        content,
+        last_modified // Send back updated timestamp
+      });
     }
   );
 });

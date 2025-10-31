@@ -1,7 +1,8 @@
+// pages/Profile.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const Profile = ({ user, onUpdateUser }) => {
+const Profile = ({ user, onUpdateUser, onLogout }) => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -9,7 +10,6 @@ const Profile = ({ user, onUpdateUser }) => {
     email: ''
   });
 
-  // Load user data when component mounts
   useEffect(() => {
     if (user) {
       setFormData({
@@ -62,9 +62,9 @@ const Profile = ({ user, onUpdateUser }) => {
     return (
       <div className="dashboard">
         <div className="empty-state">
-          <h3>User not found</h3>
-          <button className="create-btn" onClick={handleBackToDashboard}>
-            Back to Dashboard
+          <h3>Please log in to view profile</h3>
+          <button className="create-btn" onClick={() => navigate('/login')}>
+            Go to Login
           </button>
         </div>
       </div>
@@ -105,11 +105,16 @@ const Profile = ({ user, onUpdateUser }) => {
                 </div>
                 <div className="detail-item">
                   <label>Member Since</label>
-                  <p>{new Date().toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}</p>
+                  <p>
+                    {user.memberSince 
+                      ? new Date(user.memberSince).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })
+                      : 'Not available'
+                    }
+                  </p>
                 </div>
                 
                 <button 
@@ -158,7 +163,7 @@ const Profile = ({ user, onUpdateUser }) => {
                   </button>
                   <button 
                     type="submit" 
-                    className="modal-submit-btn"
+                    className="submit-btn"
                   >
                     Save Changes
                   </button>
