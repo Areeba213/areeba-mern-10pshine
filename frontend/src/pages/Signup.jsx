@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import logger from '../utils/logger';
 
 const Signup = ({ onLogin }) => {
   const [name, setName] = useState('');
@@ -13,11 +14,13 @@ const Signup = ({ onLogin }) => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
+      logger.warn('Password mismatch during signup', { email });
       alert('Passwords do not match');
       return;
     }
 
     setLoading(true);
+    logger.info('Signup attempt', { email, name });
 
     try {
       // Signup request
@@ -32,6 +35,8 @@ const Signup = ({ onLogin }) => {
       const signupData = await signupResponse.json();
 
       if (signupResponse.ok) {
+        logger.info('Signup successful', { email, name });
+        
         // Auto login after signup
         const loginResponse = await fetch('http://localhost:3000/auth/login', {
           method: 'POST',
@@ -44,6 +49,11 @@ const Signup = ({ onLogin }) => {
         const loginData = await loginResponse.json();
 
         if (loginResponse.ok) {
+          logger.info('Auto-login after signup successful', { 
+            userId: loginData.user.id, 
+            email 
+          });
+          
           // Use backend user data with proper registration date
           const userData = {
             id: loginData.user.id,
@@ -55,12 +65,24 @@ const Signup = ({ onLogin }) => {
           onLogin(userData, loginData.token);
           navigate('/dashboard');
         } else {
+          logger.error('Auto-login failed after signup', { 
+            email, 
+            error: loginData.error 
+          });
           alert('Signup successful but login failed: ' + loginData.error);
         }
       } else {
+        logger.warn('Signup failed', { 
+          email, 
+          error: signupData.error 
+        });
         alert(signupData.error || 'Signup failed');
       }
     } catch (error) {
+      logger.error('Signup error', { 
+        email, 
+        error: error.message 
+      });
       alert('Network error: ' + error.message);
     } finally {
       setLoading(false);

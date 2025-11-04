@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import logger from '../utils/logger';
 
 const Dashboard = ({ user, onUpdateUser, onLogout }) => {
   const [notes, setNotes] = useState([]);
@@ -18,6 +19,8 @@ const Dashboard = ({ user, onUpdateUser, onLogout }) => {
   // Load notes from backend
   const fetchNotes = async () => {
     try {
+      logger.info('Fetching notes', { userId: user?.id });
+      
       const token = getToken();
       const response = await fetch('http://localhost:3000/notes', {
         method: 'GET',
@@ -29,28 +32,39 @@ const Dashboard = ({ user, onUpdateUser, onLogout }) => {
       if (response.ok) {
         const notesData = await response.json();
         const notesWithColors = notesData.map((note, index) => ({
-  ...note,
-  color: `note-color-${(index % 5) + 1}`,
-  // Use last_modified if available, else use created_at
-  date: note.last_modified ? new Date(note.last_modified).toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
-  }) : note.created_at ? new Date(note.created_at).toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
-  }) : 'No date'
-}));
+          ...note,
+          color: `note-color-${(index % 5) + 1}`,
+          date: note.last_modified ? new Date(note.last_modified).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          }) : note.created_at ? new Date(note.created_at).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          }) : 'No date'
+        }));
         
         setNotes(notesWithColors);
         setFilteredNotes(notesWithColors);
+        
+        logger.info('Notes fetched successfully', { 
+          userId: user?.id, 
+          noteCount: notesWithColors.length 
+        });
       } else {
         setNotes([]);
         setFilteredNotes([]);
+        logger.warn('Failed to fetch notes', { 
+          userId: user?.id, 
+          status: response.status 
+        });
       }
     } catch (error) {
-      console.error('Error fetching notes:', error);
+      logger.error('Error fetching notes', { 
+        userId: user?.id, 
+        error: error.message 
+      });
       setNotes([]);
       setFilteredNotes([]);
     } finally {
@@ -59,6 +73,8 @@ const Dashboard = ({ user, onUpdateUser, onLogout }) => {
   };
 
   useEffect(() => {
+    logger.info('Dashboard mounted', { userId: user?.id });
+    
     if (user) {
       fetchNotes();
     }
@@ -78,26 +94,29 @@ const Dashboard = ({ user, onUpdateUser, onLogout }) => {
   }, [searchTerm, notes]);
 
   const handleLogout = () => {
+    logger.info('User logging out', { userId: user?.id });
     onLogout();
     navigate('/login');
   };
 
   const handleProfile = () => {
+    logger.info('Navigating to profile', { userId: user?.id });
     navigate('/profile');
     setShowDropdown(false);
   };
 
   const handleSettings = () => {
+    logger.info('Navigating to settings', { userId: user?.id });
     navigate('/settings');
     setShowDropdown(false);
   };
-  
 
   const toggleDropdown = () => {
     setShowDropdown(!showDropdown);
   };
 
   const handleCreateNote = () => {
+    logger.info('Opening create note modal', { userId: user?.id });
     setEditingNote(null);
     setNewNoteTitle('');
     setNewNoteContent('');
@@ -105,6 +124,10 @@ const Dashboard = ({ user, onUpdateUser, onLogout }) => {
   };
 
   const handleEditNote = (note) => {
+    logger.info('Opening edit note modal', { 
+      userId: user?.id, 
+      noteId: note.id 
+    });
     setEditingNote(note);
     setNewNoteTitle(note.title);
     setNewNoteContent(note.content);
@@ -115,10 +138,21 @@ const Dashboard = ({ user, onUpdateUser, onLogout }) => {
     const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
     
     if (settings.confirmBeforeDeleting !== false) {
-      if (!window.confirm('Are you sure you want to delete this note?')) return;
+      if (!window.confirm('Are you sure you want to delete this note?')) {
+        logger.info('Note deletion cancelled by user', { 
+          userId: user?.id, 
+          noteId: id 
+        });
+        return;
+      }
     }
 
     try {
+      logger.info('Deleting note', { 
+        userId: user?.id, 
+        noteId: id 
+      });
+      
       const token = getToken();
       const response = await fetch(`http://localhost:3000/notes/${id}`, {
         method: 'DELETE',
@@ -128,23 +162,44 @@ const Dashboard = ({ user, onUpdateUser, onLogout }) => {
       });
 
       if (response.ok) {
+        logger.info('Note deleted successfully', { 
+          userId: user?.id, 
+          noteId: id 
+        });
         await fetchNotes();
       } else {
+        logger.error('Failed to delete note', { 
+          userId: user?.id, 
+          noteId: id,
+          status: response.status
+        });
         alert('Failed to delete note');
       }
     } catch (error) {
+      logger.error('Error deleting note', { 
+        userId: user?.id, 
+        noteId: id,
+        error: error.message
+      });
       alert('Network error: ' + error.message);
     }
   };
 
   const handleSaveNote = async () => {
-    if (newNoteTitle.trim() === '') return;
+    if (newNoteTitle.trim() === '') {
+      logger.warn('Note save attempted with empty title', { userId: user?.id });
+      return;
+    }
 
     try {
       const token = getToken();
       
       if (editingNote) {
-        // Update note
+        logger.info('Updating note', { 
+          userId: user?.id, 
+          noteId: editingNote.id 
+        });
+        
         const response = await fetch(`http://localhost:3000/notes/${editingNote.id}`, {
           method: 'PUT',
           headers: {
@@ -158,13 +213,23 @@ const Dashboard = ({ user, onUpdateUser, onLogout }) => {
         });
 
         if (response.ok) {
+          logger.info('Note updated successfully', { 
+            userId: user?.id, 
+            noteId: editingNote.id 
+          });
           await fetchNotes();
         } else {
+          logger.error('Failed to update note', { 
+            userId: user?.id, 
+            noteId: editingNote.id,
+            status: response.status
+          });
           alert('Failed to update note');
           return;
         }
       } else {
-        // Create new note
+        logger.info('Creating new note', { userId: user?.id });
+        
         const response = await fetch('http://localhost:3000/notes', {
           method: 'POST',
           headers: {
@@ -178,8 +243,17 @@ const Dashboard = ({ user, onUpdateUser, onLogout }) => {
         });
 
         if (response.ok) {
+          const newNote = await response.json();
+          logger.info('Note created successfully', { 
+            userId: user?.id, 
+            noteId: newNote.id 
+          });
           await fetchNotes();
         } else {
+          logger.error('Failed to create note', { 
+            userId: user?.id,
+            status: response.status
+          });
           alert('Failed to create note');
           return;
         }
@@ -189,11 +263,19 @@ const Dashboard = ({ user, onUpdateUser, onLogout }) => {
       setNewNoteTitle('');
       setNewNoteContent('');
     } catch (error) {
+      logger.error('Error saving note', { 
+        userId: user?.id, 
+        error: error.message 
+      });
       alert('Network error: ' + error.message);
     }
   };
 
   const handleCancel = () => {
+    logger.info('Note editing cancelled', { 
+      userId: user?.id, 
+      noteId: editingNote?.id 
+    });
     setShowModal(false);
     setNewNoteTitle('');
     setNewNoteContent('');

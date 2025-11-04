@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import logger from '../utils/logger';
 
 const Login = ({ onLogin }) => {
   const [email, setEmail] = useState('');
@@ -10,6 +11,8 @@ const Login = ({ onLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    logger.info('Login attempt', { email });
 
     try {
       const response = await fetch('http://localhost:3000/auth/login', {
@@ -23,11 +26,15 @@ const Login = ({ onLogin }) => {
       const data = await response.json();
 
       console.log('Backend response:', data);
-    console.log('User data:', data.user);
-    console.log('Member since:', data.user?.memberSince);
-
+      console.log('User data:', data.user);
+      console.log('Member since:', data.user?.memberSince);
 
       if (response.ok) {
+        logger.info('Login successful', { 
+          userId: data.user.id, 
+          email: data.user.email 
+        });
+        
         // Use backend user data with proper registration date
         const userData = {
           id: data.user.id,
@@ -39,10 +46,17 @@ const Login = ({ onLogin }) => {
         onLogin(userData, data.token);
         navigate('/dashboard');
       } else {
+        logger.warn('Login failed', { 
+          email, 
+          error: data.error 
+        });
         alert(data.error || 'Login failed');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error', { 
+        email, 
+        error: error.message 
+      });
       alert('Cannot connect to server. Please check if backend is running on port 3000');
     } finally {
       setLoading(false);

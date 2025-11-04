@@ -1,6 +1,6 @@
-// pages/Profile.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import logger from '../utils/logger';
 
 const Profile = ({ user, onUpdateUser, onLogout }) => {
   const navigate = useNavigate();
@@ -11,6 +11,8 @@ const Profile = ({ user, onUpdateUser, onLogout }) => {
   });
 
   useEffect(() => {
+    logger.info('Profile page accessed', { userId: user?.id });
+    
     if (user) {
       setFormData({
         name: user.name || '',
@@ -30,9 +32,16 @@ const Profile = ({ user, onUpdateUser, onLogout }) => {
     e.preventDefault();
     
     if (!formData.name.trim() || !formData.email.trim()) {
+      logger.warn('Profile update attempted with empty fields', { userId: user?.id });
       alert('Please fill in all fields');
       return;
     }
+
+    logger.info('Updating user profile', { 
+      userId: user?.id, 
+      oldName: user.name, 
+      newName: formData.name 
+    });
 
     // Update user data
     const updatedUser = {
@@ -43,10 +52,13 @@ const Profile = ({ user, onUpdateUser, onLogout }) => {
 
     onUpdateUser(updatedUser);
     setIsEditing(false);
+    
+    logger.info('Profile updated successfully', { userId: user?.id });
     alert('Profile updated successfully!');
   };
 
   const handleCancel = () => {
+    logger.info('Profile editing cancelled', { userId: user?.id });
     setFormData({
       name: user.name || '',
       email: user.email || ''
@@ -55,6 +67,7 @@ const Profile = ({ user, onUpdateUser, onLogout }) => {
   };
 
   const handleBackToDashboard = () => {
+    logger.info('Navigating back to dashboard', { userId: user?.id });
     navigate('/dashboard');
   };
 
