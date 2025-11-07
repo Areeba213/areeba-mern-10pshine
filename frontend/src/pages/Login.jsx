@@ -1,60 +1,108 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import API from '../services/api';
+import { Link, useNavigate } from 'react-router-dom';
+import logger from '../utils/logger';
 
-const Login = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+const Login = ({ onLogin }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
+    logger.info('Login attempt', { email });
+
     try {
-      const response = await API.post('/auth/login', formData);
-      localStorage.setItem('token', response.data.token);
-      navigate('/dashboard');
+      const response = await fetch('http://localhost:3000/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      console.log('Backend response:', data);
+      console.log('User data:', data.user);
+      console.log('Member since:', data.user?.memberSince);
+
+      if (response.ok) {
+        logger.info('Login successful', { 
+          userId: data.user.id, 
+          email: data.user.email 
+        });
+        
+        // Use backend user data with proper registration date
+        const userData = {
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          memberSince: data.user.memberSince // Backend se proper date
+        };
+        
+        onLogin(userData, data.token);
+        navigate('/dashboard');
+      } else {
+        logger.warn('Login failed', { 
+          email, 
+          error: data.error 
+        });
+        alert(data.error || 'Login failed');
+      }
     } catch (error) {
-      alert('Login failed!');
+      logger.error('Login error', { 
+        email, 
+        error: error.message 
+      });
+      alert('Cannot connect to server. Please check if backend is running on port 3000');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="login-container">
-      <div className="login-form">
-        <h2>Welcome Back</h2>
-        <p>Sign in to your account</p>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <input 
-              type="email" 
-              placeholder="Email address"
-              className="form-input"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <input 
-              type="password" 
-              placeholder="Password"
-              className="form-input"
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-              required
-            />
-          </div>
-          <button type="submit" className="submit-btn">Sign In</button>
-        </form>
-        <div className="signup-link">
-          <p>Don't have an account? <a href="/signup">Sign Up</a></p>
+      <form className="login-form" onSubmit={handleSubmit}>
+        <h2>ThinkSync</h2>
+        <p>Welcome back! Please sign in to your account.</p>
+        
+        <div className="form-group">
+          <input
+            type="email"
+            className="form-input"
+            placeholder="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={loading}
+          />
         </div>
-      </div>
+        
+        <div className="form-group">
+          <input
+            type="password"
+            className="form-input"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={loading}
+          />
+        </div>
+        
+        <button type="submit" className="submit-btn" disabled={loading}>
+          {loading ? 'Signing In...' : 'Sign In'}
+        </button>
+        
+        <div className="signup-link">
+          Don't have an account? <Link to="/signup">Sign up</Link>
+        </div>
+      </form>
     </div>
   );
 };
 
 export default Login;
-

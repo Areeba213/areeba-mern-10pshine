@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import logger from '../utils/logger';
 
-const Profile = ({ user, onUpdateUser }) => {
+const Profile = ({ user, onUpdateUser, onLogout }) => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -9,8 +10,9 @@ const Profile = ({ user, onUpdateUser }) => {
     email: ''
   });
 
-  // Load user data when component mounts
   useEffect(() => {
+    logger.info('Profile page accessed', { userId: user?.id });
+    
     if (user) {
       setFormData({
         name: user.name || '',
@@ -30,9 +32,16 @@ const Profile = ({ user, onUpdateUser }) => {
     e.preventDefault();
     
     if (!formData.name.trim() || !formData.email.trim()) {
+      logger.warn('Profile update attempted with empty fields', { userId: user?.id });
       alert('Please fill in all fields');
       return;
     }
+
+    logger.info('Updating user profile', { 
+      userId: user?.id, 
+      oldName: user.name, 
+      newName: formData.name 
+    });
 
     // Update user data
     const updatedUser = {
@@ -43,10 +52,13 @@ const Profile = ({ user, onUpdateUser }) => {
 
     onUpdateUser(updatedUser);
     setIsEditing(false);
+    
+    logger.info('Profile updated successfully', { userId: user?.id });
     alert('Profile updated successfully!');
   };
 
   const handleCancel = () => {
+    logger.info('Profile editing cancelled', { userId: user?.id });
     setFormData({
       name: user.name || '',
       email: user.email || ''
@@ -55,6 +67,7 @@ const Profile = ({ user, onUpdateUser }) => {
   };
 
   const handleBackToDashboard = () => {
+    logger.info('Navigating back to dashboard', { userId: user?.id });
     navigate('/dashboard');
   };
 
@@ -62,9 +75,9 @@ const Profile = ({ user, onUpdateUser }) => {
     return (
       <div className="dashboard">
         <div className="empty-state">
-          <h3>User not found</h3>
-          <button className="create-btn" onClick={handleBackToDashboard}>
-            Back to Dashboard
+          <h3>Please log in to view profile</h3>
+          <button className="create-btn" onClick={() => navigate('/login')}>
+            Go to Login
           </button>
         </div>
       </div>
@@ -105,11 +118,16 @@ const Profile = ({ user, onUpdateUser }) => {
                 </div>
                 <div className="detail-item">
                   <label>Member Since</label>
-                  <p>{new Date().toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}</p>
+                  <p>
+                    {user.memberSince 
+                      ? new Date(user.memberSince).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })
+                      : 'Not available'
+                    }
+                  </p>
                 </div>
                 
                 <button 
@@ -158,7 +176,7 @@ const Profile = ({ user, onUpdateUser }) => {
                   </button>
                   <button 
                     type="submit" 
-                    className="modal-submit-btn"
+                    className="submit-btn"
                   >
                     Save Changes
                   </button>

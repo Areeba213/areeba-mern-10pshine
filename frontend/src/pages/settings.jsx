@@ -4,18 +4,19 @@ import { useNavigate } from 'react-router-dom';
 const Settings = () => {
   const navigate = useNavigate();
   const [settings, setSettings] = useState({
-    confirmBeforeDeleting: false,
+    confirmBeforeDeleting: true,
     colorMode: 'light'
   });
 
-  // Load settings from localStorage - sirf ek baar
+  // Load settings from localStorage
   useEffect(() => {
     const savedSettings = localStorage.getItem('appSettings');
     if (savedSettings) {
       const parsedSettings = JSON.parse(savedSettings);
       setSettings(parsedSettings);
+      applyTheme(parsedSettings.colorMode);
     }
-  }, []); // Empty dependency - sirf component mount par
+  }, []);
 
   // Apply theme function
   const applyTheme = (mode) => {
@@ -23,19 +24,14 @@ const Settings = () => {
     
     if (mode === 'dark') {
       root.setAttribute('data-theme', 'dark');
-    } else if (mode === 'light') {
-      root.removeAttribute('data-theme');
+      document.body.style.backgroundColor = '#1a1a1a';
     } else {
-      // System mode
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        root.setAttribute('data-theme', 'dark');
-      } else {
-        root.removeAttribute('data-theme');
-      }
+      root.removeAttribute('data-theme');
+      document.body.style.backgroundColor = '#ffffff';
     }
   };
 
-  // Save settings to localStorage aur theme apply karo
+  // Save settings to localStorage and apply theme
   const updateSettings = (newSettings) => {
     setSettings(newSettings);
     localStorage.setItem('appSettings', JSON.stringify(newSettings));
@@ -64,7 +60,7 @@ const Settings = () => {
     <div className="dashboard">
       <div className="dashboard-header">
         <h1>Settings</h1>
-        <button className="back-btn" onClick={handleBackToDashboard}>
+        <button className="logout-btn" onClick={handleBackToDashboard}>
           ← Back to Dashboard
         </button>
       </div>
@@ -73,14 +69,14 @@ const Settings = () => {
         <div className="settings-container">
           <div className="settings-card">
             <div className="settings-section">
-              <h2>General</h2>
+              <h2>General Settings</h2>
               
               <div className="setting-option">
                 <div className="setting-info">
-                  <div className="setting-title">Confirm before deleting</div>
-                  <div className="setting-description">
-                    Show confirmation dialog when deleting notes
-                  </div>
+                  <h3 className="setting-title">Confirm Before Deleting</h3>
+                  <p className="setting-description">
+                    Show confirmation dialog when deleting notes to prevent accidental deletion
+                  </p>
                 </div>
                 <label className="toggle-switch">
                   <input 
@@ -96,37 +92,75 @@ const Settings = () => {
             <div className="settings-divider"></div>
 
             <div className="settings-section">
-              <h2>Color</h2>
+              <h2>Appearance</h2>
               
-              <div className="radio-group">
-                <div 
-                  className="radio-option"
-                  onClick={() => handleColorModeChange('light')}
-                >
-                  <div className={`radio-input ${settings.colorMode === 'light' ? 'checked' : ''}`}>
-                    {settings.colorMode === 'light' && <div className="radio-dot"></div>}
+              <div className="color-mode-section">
+                <h3 className="setting-title">Color Mode</h3>
+                <p className="setting-description">
+                  Choose how ThinkSync looks to you
+                </p>
+                
+                <div className="radio-group">
+                  <div 
+                    className={`radio-option ${settings.colorMode === 'light' ? 'selected' : ''}`}
+                    onClick={() => handleColorModeChange('light')}
+                  >
+                    <div className="radio-content">
+                      <div className="radio-input">
+                        {settings.colorMode === 'light' && <div className="radio-dot"></div>}
+                      </div>
+                      <div className="radio-info">
+                        <span className="radio-label">Light Mode</span>
+                        <span className="radio-description">Clean white background</span>
+                      </div>
+                    </div>
                   </div>
-                  <span className="radio-label">Light</span>
-                </div>
 
-                <div 
-                  className="radio-option"
-                  onClick={() => handleColorModeChange('dark')}
-                >
-                  <div className={`radio-input ${settings.colorMode === 'dark' ? 'checked' : ''}`}>
-                    {settings.colorMode === 'dark' && <div className="radio-dot"></div>}
+                  <div 
+                    className={`radio-option ${settings.colorMode === 'dark' ? 'selected' : ''}`}
+                    onClick={() => handleColorModeChange('dark')}
+                  >
+                    <div className="radio-content">
+                      <div className="radio-input">
+                        {settings.colorMode === 'dark' && <div className="radio-dot"></div>}
+                      </div>
+                      <div className="radio-info">
+                        <span className="radio-label">Dark Mode</span>
+                        <span className="radio-description">Easy on the eyes in low light</span>
+                      </div>
+                    </div>
                   </div>
-                  <span className="radio-label">Dark</span>
-                </div>
 
-                <div 
-                  className="radio-option"
-                  onClick={() => handleColorModeChange('system')}
-                >
-                  <div className={`radio-input ${settings.colorMode === 'system' ? 'checked' : ''}`}>
-                    {settings.colorMode === 'system' && <div className="radio-dot"></div>}
+                  <div 
+                    className={`radio-option ${settings.colorMode === 'system' ? 'selected' : ''}`}
+                    onClick={() => handleColorModeChange('system')}
+                  >
+                    <div className="radio-content">
+                      <div className="radio-input">
+                        {settings.colorMode === 'system' && <div className="radio-dot"></div>}
+                      </div>
+                      <div className="radio-info">
+                        <span className="radio-label">System Default</span>
+                        <span className="radio-description">Match your device settings</span>
+                      </div>
+                    </div>
                   </div>
-                  <span className="radio-label">Use my Windows mode</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="settings-divider"></div>
+
+            <div className="settings-section">
+              <h2>About</h2>
+              <div className="about-section">
+                <div className="about-item">
+                  <span className="about-label">App Version</span>
+                  <span className="about-value">1.0.0</span>
+                </div>
+                <div className="about-item">
+                  <span className="about-label">Developer</span>
+                  <span className="about-value">ThinkSync Team</span>
                 </div>
               </div>
             </div>

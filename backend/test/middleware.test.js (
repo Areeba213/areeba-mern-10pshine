@@ -1,0 +1,39 @@
+const { expect } = require('chai');
+const request = require('supertest');
+const app = require('../index');
+const jwt = require('jsonwebtoken');
+
+describe('Middleware Tests', () => {
+  describe('Auth Middleware', () => {
+    it('should allow access with valid token', (done) => {
+      const token = jwt.sign({ id: 1, email: 'test@example.com' }, 'secretKey');
+      
+      request(app)
+        .get('/notes')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200)
+        .end(done);
+    });
+
+    it('should reject access without token', (done) => {
+      request(app)
+        .get('/notes')
+        .expect(401)
+        .end((err, res) => {
+          expect(res.body).to.have.property('error', 'No token, authorization denied');
+          done();
+        });
+    });
+
+    it('should reject access with invalid token', (done) => {
+      request(app)
+        .get('/notes')
+        .set('Authorization', 'Bearer invalid-token')
+        .expect(401)
+        .end((err, res) => {
+          expect(res.body).to.have.property('error', 'Token is not valid');
+          done();
+        });
+    });
+  });
+});
